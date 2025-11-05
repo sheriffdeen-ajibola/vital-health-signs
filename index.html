@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vital Signs Monitor</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <div class="logo">
+            <div class="logo-icon">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <h1>Vital Signs Monitor</h1>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="exportBtn">
+              Export Data
+            </button>
+            <button class="btn btn-primary" id="addReadingBtn">
+              Add Reading
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Dashboard Overview -->
+        <section class="dashboard-section">
+          <h2>Dashboard Overview</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon heart-rate">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>Heart Rate</h3>
+                <div class="stat-value" id="latestHeartRate">--</div>
+                <div class="stat-unit">bpm</div>
+                <div class="stat-status" id="heartRateStatus">No data</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon blood-pressure">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>Blood Pressure</h3>
+                <div class="stat-value" id="latestBloodPressure">--/--</div>
+                <div class="stat-unit">mmHg</div>
+                <div class="stat-status" id="bloodPressureStatus">No data</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon temperature">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>Temperature</h3>
+                <div class="stat-value" id="latestTemperature">--</div>
+                <div class="stat-unit">°F</div>
+                <div class="stat-status" id="temperatureStatus">No data</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon bmi">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+                  <path d="M12 6v6" />
+                  <path d="M16 10l-4 4-4-4" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>BMI</h3>
+                <div class="stat-value" id="latestBMI">--</div>
+                <div class="stat-unit">kg/m²</div>
+                <div class="stat-status" id="bmiStatus">No data</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon oxygen">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path
+                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>Oxygen Saturation</h3>
+                <div class="stat-value" id="latestOxygen">--</div>
+                <div class="stat-unit">%</div>
+                <div class="stat-status" id="oxygenStatus">No data</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon respiratory">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M9 12l2 2 4-4" />
+                  <path
+                    d="M21 12c.552 0 1-.448 1-1V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3c0 .552.448 1 1 1" />
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>Respiratory Rate</h3>
+                <div class="stat-value" id="latestRespiratory">--</div>
+                <div class="stat-unit">breaths/min</div>
+                <div class="stat-status" id="respiratoryStatus">No data</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="quick-actions-section">
+          <h2>Quick Actions</h2>
+          <div class="quick-actions-grid">
+            <button class="quick-action-btn" data-modal="bmi">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+                  <path d="M12 6v6" />
+                  <path d="M16 10l-4 4-4-4" />
+                </svg>
+              </div>
+              <span>Calculate BMI</span>
+            </button>
+
+            <button class="quick-action-btn" data-modal="heartRate">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+              <span>Log Heart Rate</span>
+            </button>
+
+            <button class="quick-action-btn" data-modal="bloodPressure">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <span>Record Blood Pressure</span>
+            </button>
+
+            <button class="quick-action-btn" data-modal="temperature">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+                </svg>
+              </div>
+              <span>Log Temperature</span>
+            </button>
+
+            <button class="quick-action-btn" data-modal="oxygen">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path
+                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <span>Record Oxygen Saturation</span>
+            </button>
+
+            <button class="quick-action-btn" data-modal="respiratory">
+              <div class="quick-action-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M9 12l2 2 4-4" />
+                  <path
+                    d="M21 12c.552 0 1-.448 1-1V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v3c0 .552.448 1 1 1" />
+                </svg>
+              </div>
+              <span>Log Respiratory Rate</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Recent Readings -->
+        <section class="readings-section">
+          <div class="section-header">
+            <h2>Recent Readings</h2>
+
+            <button class="btn btn-outline" id="viewAllBtn">View All</button>
+          </div>
+          <div class="readings-table-container">
+            <table class="readings-table" id="readingsTable">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="readingsTableBody">
+                <tr class="no-data-row">
+                  <td colspan="5">
+                    No readings recorded yet. Start by adding your first vital
+                    sign measurement.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <!-- BMI Calculator Modal -->
+    <div class="modal" id="bmiModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>BMI Calculator</h3>
+          <button class="modal-close" data-modal="bmi">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="bmiForm">
+            <div class="form-group">
+              <label for="height">Height</label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  id="height"
+                  style="width: 100px"
+                  step="0.1"
+                  min="0"
+                  required />
+                <select id="heightUnit">
+                  <option value="cm">cm</option>
+                  <option value="ft">ft</option>
+                  <option value="in">inches</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="weight">Weight</label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  id="weight"
+                  style="width: 100px"
+                  step="0.1"
+                  min="0"
+                  required />
+                <select id="weightUnit">
+                  <option value="kg">kg</option>
+                  <option value="lbs">lbs</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" data-modal="bmi">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Calculate BMI
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heart Rate Modal -->
+    <div class="modal" id="heartRateModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Record Heart Rate</h3>
+          <button class="modal-close" data-modal="heartRate">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="heartRateForm">
+            <div class="form-group">
+              <label for="heartRateValue">Heart Rate (bpm)</label>
+              <input
+                type="number"
+                id="heartRateValue"
+                min="30"
+                max="220"
+                required />
+              <small>Normal resting heart rate: 60-100 bpm</small>
+            </div>
+            <div class="form-group">
+              <label for="heartRateNotes">Notes (optional)</label>
+              <textarea
+                id="heartRateNotes"
+                rows="3"
+                placeholder="Any additional notes..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-modal="heartRate">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Reading
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blood Pressure Modal -->
+    <div class="modal" id="bloodPressureModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Record Blood Pressure</h3>
+          <button class="modal-close" data-modal="bloodPressure">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="bloodPressureForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="systolic">Systolic (mmHg)</label>
+                <input
+                  type="number"
+                  id="systolic"
+                  min="70"
+                  max="250"
+                  required />
+              </div>
+              <div class="form-group">
+                <label for="diastolic">Diastolic (mmHg)</label>
+                <input
+                  type="number"
+                  id="diastolic"
+                  min="40"
+                  max="150"
+                  required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="bloodPressureNotes">Notes (optional)</label>
+              <textarea
+                id="bloodPressureNotes"
+                rows="3"
+                placeholder="Any additional notes..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-modal="bloodPressure">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Reading
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperature Modal -->
+    <div class="modal" id="temperatureModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Record Temperature</h3>
+          <button class="modal-close" data-modal="temperature">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="temperatureForm">
+            <div class="form-group">
+              <label for="temperatureValue">Temperature</label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  style="width: 100px"
+                  id="temperatureValue"
+                  step="0.1"
+                  min="90"
+                  max="110"
+                  required />
+                <select id="temperatureUnit">
+                  <option value="F">°F</option>
+                  <option value="C">°C</option>
+                </select>
+              </div>
+              <small>Normal body temperature: 98.6°F (37°C)</small>
+            </div>
+            <div class="form-group">
+              <label for="temperatureNotes">Notes (optional)</label>
+              <textarea
+                id="temperatureNotes"
+                rows="3"
+                placeholder="Any additional notes..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-modal="temperature">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Reading
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Oxygen Saturation Modal -->
+    <div class="modal" id="oxygenModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Record Oxygen Saturation</h3>
+          <button class="modal-close" data-modal="oxygen">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="oxygenForm">
+            <div class="form-group">
+              <label for="oxygenValue">Oxygen Saturation (%)</label>
+              <input
+                type="number"
+                id="oxygenValue"
+                min="70"
+                max="100"
+                required />
+              <small>Normal oxygen saturation: 95-100%</small>
+            </div>
+            <div class="form-group">
+              <label for="oxygenNotes">Notes (optional)</label>
+              <textarea
+                id="oxygenNotes"
+                rows="3"
+                placeholder="Any additional notes..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-modal="oxygen">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Reading
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Respiratory Rate Modal -->
+    <div class="modal" id="respiratoryModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Record Respiratory Rate</h3>
+          <button class="modal-close" data-modal="respiratory">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="respiratoryForm">
+            <div class="form-group">
+              <label for="respiratoryValue"
+                >Respiratory Rate (breaths/min)</label
+              >
+              <input
+                type="number"
+                id="respiratoryValue"
+                min="8"
+                max="40"
+                required />
+              <small>Normal respiratory rate: 12-20 breaths/min</small>
+            </div>
+            <div class="form-group">
+              <label for="respiratoryNotes">Notes (optional)</label>
+              <textarea
+                id="respiratoryNotes"
+                rows="3"
+                placeholder="Any additional notes..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-modal="respiratory">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Reading
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/modals.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/storage.js"></script>
+  </body>
+</html>
