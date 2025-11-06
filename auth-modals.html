@@ -1,0 +1,71 @@
+<!-- Auth Modals -->
+<!-- Sign In Modal -->
+<div class="modal" id="signInModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Sign In</h3>
+      <button class="modal-close" data-modal="signIn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="signInForm">
+        <div class="form-group">
+          <label for="signInEmail">Email</label>
+          <input type="email" id="signInEmail" required />
+        </div>
+        <div class="form-group">
+          <label for="signInPassword">Password</label>
+          <input type="password" id="signInPassword" required />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-modal="signIn">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </div>
+      </form>
+      <div class="form-footer">
+        <p>
+          Don't have an account? <a href="#" id="showSignUpModal">Sign up</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sign Up Modal -->
+<div class="modal" id="signUpModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create Account</h3>
+      <button class="modal-close" data-modal="signUp">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="signUpForm">
+        <div class="form-group">
+          <label for="signUpName">Name</label>
+          <input type="text" id="signUpName" required />
+        </div>
+        <div class="form-group">
+          <label for="signUpEmail">Email</label>
+          <input type="email" id="signUpEmail" required />
+        </div>
+        <div class="form-group">
+          <label for="signUpPassword">Password</label>
+          <input type="password" id="signUpPassword" required minlength="6" />
+          <small>Password must be at least 6 characters long</small>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-modal="signUp">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </div>
+      </form>
+      <div class="form-footer">
+        <p>
+          Already have an account? <a href="#" id="showSignInModal">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
