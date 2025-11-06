@@ -1,17 +1,9 @@
-// Firebase Storage Management for Vital Signs Data
+// Local Storage Management for Vital Signs Data
 class VitalSignsStorage {
   constructor() {
-    this.db = firebase.firestore();
-    this.auth = firebase.auth();
-    this.currentUser = null;
-
-    // Listen for auth state changes
-    this.auth.onAuthStateChanged((user) => {
-      this.currentUser = user;
-      if (user) {
-        this.initializeStorage();
-      }
-    });
+    this.storageKey = "vitalSignsData";
+    this.settingsKey = "vitalSignsSettings";
+    this.initializeStorage();
   }
 
   initializeStorage() {
@@ -311,4 +303,6 @@ class VitalSignsStorage {
 
     return this.getReadingsByDateRange(startOfDay, endOfDay);
   }
+
+  
 }

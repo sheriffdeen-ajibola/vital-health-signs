@@ -4,108 +4,17 @@ class VitalSignsApp {
     this.storage = new VitalSignsStorage();
     this.modals = new ModalManager();
     this.calculator = new VitalSignsCalculator();
-    this.auth = new AuthService();
 
     this.init();
   }
 
   init() {
     this.bindEvents();
-    this.setupAuthListeners();
-  }
-
-  setupAuthListeners() {
-    this.auth.onAuthStateChanged((user) => {
-      const authButtons = document.getElementById("authButtons");
-      const userActions = document.getElementById("userActions");
-      const userName = document.getElementById("userName");
-      const mainContent = document.querySelector(".main-content");
-
-      if (user) {
-        // User is signed in
-        authButtons.style.display = "none";
-        userActions.style.display = "flex";
-        userName.textContent = user.displayName || user.email;
-        mainContent.style.display = "block";
-
-        // Load user data
-        this.loadDashboard();
-        this.loadRecentReadings();
-      } else {
-        // No user is signed in
-        authButtons.style.display = "flex";
-        userActions.style.display = "none";
-        userName.textContent = "";
-        mainContent.style.display = "none";
-      }
-    });
+    this.loadDashboard();
+    this.loadRecentReadings();
   }
 
   bindEvents() {
-    // Auth related events
-    document.getElementById("signInBtn").addEventListener("click", () => {
-      this.modals.openModal("signIn");
-    });
-
-    document.getElementById("signUpBtn").addEventListener("click", () => {
-      this.modals.openModal("signUp");
-    });
-
-    document.getElementById("signOutBtn").addEventListener("click", () => {
-      this.auth.signOut();
-    });
-
-    document
-      .getElementById("showSignUpModal")
-      .addEventListener("click", (e) => {
-        e.preventDefault();
-        this.modals.closeModal("signIn");
-        this.modals.openModal("signUp");
-      });
-
-    document
-      .getElementById("showSignInModal")
-      .addEventListener("click", (e) => {
-        e.preventDefault();
-        this.modals.closeModal("signUp");
-        this.modals.openModal("signIn");
-      });
-
-    // Sign In Form
-    document
-      .getElementById("signInForm")
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("signInEmail").value;
-        const password = document.getElementById("signInPassword").value;
-
-        try {
-          await this.auth.signIn(email, password);
-          this.modals.closeModal("signIn");
-          this.showNotification("Successfully signed in!", "success");
-        } catch (error) {
-          this.showNotification(error.message, "error");
-        }
-      });
-
-    // Sign Up Form
-    document
-      .getElementById("signUpForm")
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("signUpName").value;
-        const email = document.getElementById("signUpEmail").value;
-        const password = document.getElementById("signUpPassword").value;
-
-        try {
-          await this.auth.signUp(email, password, name);
-          this.modals.closeModal("signUp");
-          this.showNotification("Account created successfully!", "success");
-        } catch (error) {
-          this.showNotification(error.message, "error");
-        }
-      });
-
     // Header actions
     document.getElementById("addReadingBtn").addEventListener("click", () => {
       this.showAddReadingMenu();
