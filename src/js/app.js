@@ -1,3 +1,8 @@
+import { AuthService } from "./auth-service";
+import { VitalSignsCalculator } from "./calculations";
+import { ModalManager } from "./modals";
+import { VitalSignsStorage } from "./storage";
+
 // Main Application Controller
 class VitalSignsApp {
   constructor() {

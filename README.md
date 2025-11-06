@@ -46,7 +46,36 @@ The application has been upgraded to include Firebase Authentication and Cloud F
 - Updated header with user profile information
 - Conditional rendering based on authentication state
 
-## Setup Instructions
+## Development Setup
+
+1. **Install Dependencies**
+
+   ```bash
+   # Install project dependencies
+   npm install
+   ```
+
+2. **Start Development Server**
+
+   ```bash
+   # Run development server
+   npm run dev
+   ```
+
+3. **Build for Production**
+
+   ```bash
+   # Create production build
+   npm run build
+   ```
+
+4. **Preview Production Build**
+   ```bash
+   # Preview production build locally
+   npm run preview
+   ```
+
+## Firebase Setup
 
 1. **Firebase Configuration**
 
@@ -71,6 +100,7 @@ The application has been upgraded to include Firebase Authentication and Cloud F
 
 3. **Security Rules**
    Add these security rules in your Firebase Console:
+
    ```javascript
    rules_version = '2';
    service cloud.firestore {
