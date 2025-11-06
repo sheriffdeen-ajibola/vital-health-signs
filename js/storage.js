@@ -1,50 +1,99 @@
-// Local Storage Management for Vital Signs Data
+// Firestore Storage Management for Vital Signs Data
 class VitalSignsStorage {
   constructor() {
-    this.storageKey = "vitalSignsData";
+    this.db = window.firebaseDb;
+    this.auth = window.firebaseAuth;
     this.settingsKey = "vitalSignsSettings";
-    this.initializeStorage();
+    this.cachedReadings = [];
+    this.cachedSettings = null;
   }
 
-  initializeStorage() {
-    // Initialize storage if it doesn't exist
-    if (!localStorage.getItem(this.storageKey)) {
-      localStorage.setItem(this.storageKey, JSON.stringify([]));
+  // Get current user's collection reference
+  getUserReadingsRef() {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error("User not authenticated");
     }
-
-    if (!localStorage.getItem(this.settingsKey)) {
-      const defaultSettings = {
-        temperatureUnit: "F",
-        weightUnit: "lbs",
-        heightUnit: "ft",
-        dateFormat: "MM/DD/YYYY",
-        notifications: true,
-        dataRetentionDays: 365,
-      };
-      localStorage.setItem(this.settingsKey, JSON.stringify(defaultSettings));
-    }
+    return this.db.collection("users").doc(user.uid).collection("readings");
   }
 
-  // Reading Management
-  saveReading(reading) {
+  // Get user settings reference
+  getUserSettingsRef() {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    return this.db.collection("users").doc(user.uid);
+  }
+
+  // Initialize user data
+  async initializeUserData() {
     try {
-      const readings = this.getAllReadings();
+      const userRef = this.getUserSettingsRef();
+      const doc = await userRef.get();
 
+      if (!doc.exists) {
+        // Create default settings for new user
+        const defaultSettings = {
+          temperatureUnit: "F",
+          weightUnit: "lbs",
+          heightUnit: "ft",
+          dateFormat: "MM/DD/YYYY",
+          notifications: true,
+          dataRetentionDays: 365,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        await userRef.set(defaultSettings);
+      }
+
+      // Load initial data
+      await this.loadAllReadings();
+      return true;
+    } catch (error) {
+      console.error("Error initializing user data:", error);
+      return false;
+    }
+  }
+
+  // Load all readings from Firestore
+  async loadAllReadings() {
+    try {
+      const snapshot = await this.getUserReadingsRef()
+        .orderBy("timestamp", "desc")
+        .get();
+
+      this.cachedReadings = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      return this.cachedReadings;
+    } catch (error) {
+      console.error("Error loading readings:", error);
+      return [];
+    }
+  }
+
+  // Save reading to Firestore
+  async saveReading(reading) {
+    try {
       // Add timestamp if not provided
       if (!reading.timestamp) {
         reading.timestamp = new Date().toISOString();
       }
 
-      // Add unique ID if not provided
-      if (!reading.id) {
-        reading.id = Date.now() + Math.random();
-      }
+      // Remove id if it exists (Firestore will generate one)
+      const { id, ...readingData } = reading;
 
-      readings.push(reading);
-      localStorage.setItem(this.storageKey, JSON.stringify(readings));
+      // Save to Firestore
+      const docRef = await this.getUserReadingsRef().add({
+        ...readingData,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
 
-      // Clean up old data based on retention settings
-      this.cleanupOldData();
+      // Update cache
+      const newReading = { id: docRef.id, ...readingData };
+      this.cachedReadings.unshift(newReading);
 
       return true;
     } catch (error) {
@@ -53,31 +102,28 @@ class VitalSignsStorage {
     }
   }
 
+  // Get all readings (from cache)
   getAllReadings() {
-    try {
-      const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Error retrieving readings:", error);
-      return [];
-    }
+    return this.cachedReadings;
   }
 
+  // Get readings by type
   getReadingsByType(type) {
-    return this.getAllReadings().filter((reading) => reading.type === type);
+    return this.cachedReadings.filter((reading) => reading.type === type);
   }
 
+  // Get readings by date range
   getReadingsByDateRange(startDate, endDate) {
-    const readings = this.getAllReadings();
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    return readings.filter((reading) => {
+    return this.cachedReadings.filter((reading) => {
       const readingDate = new Date(reading.timestamp);
       return readingDate >= start && readingDate <= end;
     });
   }
 
+  // Get latest reading by type
   getLatestReading(type) {
     const readings = this.getReadingsByType(type);
     if (readings.length === 0) return null;
@@ -87,18 +133,22 @@ class VitalSignsStorage {
     )[0];
   }
 
-  updateReading(id, updatedData) {
+  // Update reading in Firestore
+  async updateReading(id, updatedData) {
     try {
-      const readings = this.getAllReadings();
-      const index = readings.findIndex((reading) => reading.id === id);
+      await this.getUserReadingsRef().doc(id).update(updatedData);
 
-      if (index === -1) {
-        console.error("Reading not found");
-        return false;
+      // Update cache
+      const index = this.cachedReadings.findIndex(
+        (reading) => reading.id === id
+      );
+      if (index !== -1) {
+        this.cachedReadings[index] = {
+          ...this.cachedReadings[index],
+          ...updatedData,
+        };
       }
 
-      readings[index] = { ...readings[index], ...updatedData };
-      localStorage.setItem(this.storageKey, JSON.stringify(readings));
       return true;
     } catch (error) {
       console.error("Error updating reading:", error);
@@ -106,11 +156,16 @@ class VitalSignsStorage {
     }
   }
 
-  deleteReading(id) {
+  // Delete reading from Firestore
+  async deleteReading(id) {
     try {
-      const readings = this.getAllReadings();
-      const filteredReadings = readings.filter((reading) => reading.id !== id);
-      localStorage.setItem(this.storageKey, JSON.stringify(filteredReadings));
+      await this.getUserReadingsRef().doc(id).delete();
+
+      // Update cache
+      this.cachedReadings = this.cachedReadings.filter(
+        (reading) => reading.id !== id
+      );
+
       return true;
     } catch (error) {
       console.error("Error deleting reading:", error);
@@ -118,26 +173,56 @@ class VitalSignsStorage {
     }
   }
 
-  // Settings Management
-  getSettings() {
+  // Get settings from Firestore
+  async getSettings() {
     try {
-      const settings = localStorage.getItem(this.settingsKey);
-      return settings ? JSON.parse(settings) : {};
+      if (this.cachedSettings) {
+        return this.cachedSettings;
+      }
+
+      const doc = await this.getUserSettingsRef().get();
+      if (doc.exists) {
+        this.cachedSettings = doc.data();
+        return this.cachedSettings;
+      }
+
+      return {};
     } catch (error) {
       console.error("Error retrieving settings:", error);
       return {};
     }
   }
 
-  updateSettings(newSettings) {
+  // Update settings in Firestore
+  async updateSettings(newSettings) {
     try {
-      const currentSettings = this.getSettings();
-      const updatedSettings = { ...currentSettings, ...newSettings };
-      localStorage.setItem(this.settingsKey, JSON.stringify(updatedSettings));
+      await this.getUserSettingsRef().update(newSettings);
+
+      // Update cache
+      this.cachedSettings = { ...this.cachedSettings, ...newSettings };
+
       return true;
     } catch (error) {
       console.error("Error updating settings:", error);
       return false;
+    }
+  }
+
+  // Real-time listener for readings
+  subscribeToReadings(callback) {
+    try {
+      return this.getUserReadingsRef()
+        .orderBy("timestamp", "desc")
+        .onSnapshot((snapshot) => {
+          this.cachedReadings = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          callback(this.cachedReadings);
+        });
+    } catch (error) {
+      console.error("Error subscribing to readings:", error);
+      return null;
     }
   }
 
@@ -165,8 +250,6 @@ class VitalSignsStorage {
     const average = sum / readings.length;
     const min = Math.min(...readings);
     const max = Math.max(...readings);
-
-    // Calculate trend (simple linear regression)
     const trend = this.calculateTrend(readings);
 
     return {
@@ -182,30 +265,33 @@ class VitalSignsStorage {
     if (values.length < 2) return 0;
 
     const n = values.length;
-    const sumX = (n * (n - 1)) / 2; // Sum of indices 0, 1, 2, ..., n-1
+    const sumX = (n * (n - 1)) / 2;
     const sumY = values.reduce((a, b) => a + b, 0);
     const sumXY = values.reduce((sum, y, x) => sum + x * y, 0);
     const sumXX = values.reduce((sum, _, x) => sum + x * x, 0);
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-
-    // Return trend as percentage change per reading
     return Math.round(slope * 100) / 100;
   }
 
-  // Data Export/Import
-  exportData() {
+  // Export data
+  async exportData() {
+    const readings = this.getAllReadings();
+    const settings = await this.getSettings();
+
     const data = {
-      readings: this.getAllReadings(),
-      settings: this.getSettings(),
+      readings: readings,
+      settings: settings,
       exportDate: new Date().toISOString(),
-      version: "1.0",
+      version: "2.0",
+      userId: this.auth.currentUser?.uid,
     };
 
     return JSON.stringify(data, null, 2);
   }
 
-  importData(jsonData) {
+  // Import data
+  async importData(jsonData) {
     try {
       const data = JSON.parse(jsonData);
 
@@ -213,16 +299,28 @@ class VitalSignsStorage {
         throw new Error("Invalid data format");
       }
 
-      // Backup current data
-      const backup = this.exportData();
-      localStorage.setItem("vitalSignsBackup", backup);
+      // Import readings
+      const batch = this.db.batch();
+      const readingsRef = this.getUserReadingsRef();
 
-      // Import new data
-      localStorage.setItem(this.storageKey, JSON.stringify(data.readings));
+      data.readings.forEach((reading) => {
+        const { id, ...readingData } = reading;
+        const docRef = readingsRef.doc();
+        batch.set(docRef, {
+          ...readingData,
+          importedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
 
+      await batch.commit();
+
+      // Import settings if available
       if (data.settings) {
-        localStorage.setItem(this.settingsKey, JSON.stringify(data.settings));
+        await this.updateSettings(data.settings);
       }
+
+      // Reload data
+      await this.loadAllReadings();
 
       return true;
     } catch (error) {
@@ -231,60 +329,40 @@ class VitalSignsStorage {
     }
   }
 
-  // Data Cleanup
-  cleanupOldData() {
-    const settings = this.getSettings();
-    const retentionDays = settings.dataRetentionDays || 365;
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-
-    const readings = this.getAllReadings();
-    const filteredReadings = readings.filter((reading) => {
-      const readingDate = new Date(reading.timestamp);
-      return readingDate >= cutoffDate;
-    });
-
-    if (filteredReadings.length !== readings.length) {
-      localStorage.setItem(this.storageKey, JSON.stringify(filteredReadings));
-      console.log(
-        `Cleaned up ${readings.length - filteredReadings.length} old readings`
-      );
-    }
-  }
-
-  // Storage Usage
-  getStorageUsage() {
-    const readings = JSON.stringify(this.getAllReadings());
-    const settings = JSON.stringify(this.getSettings());
-
-    return {
-      readings: new Blob([readings]).size,
-      settings: new Blob([settings]).size,
-      total: new Blob([readings + settings]).size,
-      readingsCount: this.getAllReadings().length,
-    };
-  }
-
-  // Clear all data
-  clearAllData() {
+  // Clean up old data
+  async cleanupOldData() {
     try {
-      localStorage.removeItem(this.storageKey);
-      localStorage.removeItem(this.settingsKey);
-      this.initializeStorage();
-      return true;
+      const settings = await this.getSettings();
+      const retentionDays = settings.dataRetentionDays || 365;
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+      const oldReadings = await this.getUserReadingsRef()
+        .where("timestamp", "<", cutoffDate.toISOString())
+        .get();
+
+      if (oldReadings.empty) return;
+
+      const batch = this.db.batch();
+      oldReadings.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      console.log(`Cleaned up ${oldReadings.size} old readings`);
+      await this.loadAllReadings();
     } catch (error) {
-      console.error("Error clearing data:", error);
-      return false;
+      console.error("Error cleaning up old data:", error);
     }
   }
 
   // Search functionality
   searchReadings(query, searchFields = ["type", "notes"]) {
-    const readings = this.getAllReadings();
     const lowercaseQuery = query.toLowerCase();
 
-    return readings.filter((reading) => {
+    return this.cachedReadings.filter((reading) => {
       return searchFields.some((field) => {
         const fieldValue = reading[field];
         return (
@@ -304,5 +382,27 @@ class VitalSignsStorage {
     return this.getReadingsByDateRange(startOfDay, endOfDay);
   }
 
-  
+  // Clear all user data
+  async clearAllData() {
+    try {
+      // Delete all readings
+      const snapshot = await this.getUserReadingsRef().get();
+      const batch = this.db.batch();
+
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      // Clear cache
+      this.cachedReadings = [];
+      this.cachedSettings = null;
+
+      return true;
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      return false;
+    }
+  }
 }

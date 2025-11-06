@@ -1,193 +1,17 @@
-// Main Application Controller with Firebase Authentication
+// Main Application Controller
 class VitalSignsApp {
   constructor() {
-    this.storage = null;
+    this.storage = new VitalSignsStorage();
     this.modals = new ModalManager();
     this.calculator = new VitalSignsCalculator();
-    this.authManager = window.authManager;
-    this.unsubscribeReadings = null;
+
+    this.init();
   }
 
-  async init() {
-    // Wait for authentication to be ready
-    await this.authManager.init();
-
-    // Listen for auth state changes
-    this.authManager.onAuthStateChange((user) => {
-      if (user) {
-        this.onUserSignedIn(user);
-      } else {
-        this.onUserSignedOut();
-      }
-    });
-
-    // Bind authentication form events
-    this.bindAuthEvents();
-  }
-
-  async onUserSignedIn(user) {
-    console.log("User signed in:", user.email);
-
-    // Initialize storage with authenticated user
-    this.storage = new VitalSignsStorage();
-
-    // Initialize user data in Firestore
-    await this.storage.initializeUserData();
-
-    // Bind app events
+  init() {
     this.bindEvents();
-    this.bindFormEvents();
-
-    // Subscribe to real-time updates
-    this.subscribeToReadings();
-
-    // Load initial data
     this.loadDashboard();
     this.loadRecentReadings();
-  }
-
-  onUserSignedOut() {
-    console.log("User signed out");
-
-    // Unsubscribe from real-time updates
-    if (this.unsubscribeReadings) {
-      this.unsubscribeReadings();
-      this.unsubscribeReadings = null;
-    }
-
-    // Clear storage reference
-    this.storage = null;
-  }
-
-  bindAuthEvents() {
-    // Auth tab switching
-    const authTabs = document.querySelectorAll(".auth-tab");
-    authTabs.forEach((tab) => {
-      tab.addEventListener("click", (e) => {
-        const tabName = e.target.dataset.tab;
-        this.switchAuthTab(tabName);
-      });
-    });
-
-    // Sign In Form
-    const signInForm = document.getElementById("signInForm");
-    signInForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await this.handleSignIn();
-    });
-
-    // Sign Up Form
-    const signUpForm = document.getElementById("signUpForm");
-    signUpForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await this.handleSignUp();
-    });
-
-    // Forgot Password Link
-    const forgotPasswordLink = document.getElementById("forgotPasswordLink");
-    forgotPasswordLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      this.handleForgotPassword();
-    });
-  }
-
-  switchAuthTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll(".auth-tab").forEach((tab) => {
-      tab.classList.remove("active");
-    });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
-
-    // Update forms
-    document.querySelectorAll(".auth-form").forEach((form) => {
-      form.classList.remove("active");
-    });
-
-    if (tabName === "signin") {
-      document.getElementById("signInForm").classList.add("active");
-    } else {
-      document.getElementById("signUpForm").classList.add("active");
-    }
-  }
-
-  async handleSignIn() {
-    const email = document.getElementById("signInEmail").value.trim();
-    const password = document.getElementById("signInPassword").value;
-    const btn = document.getElementById("signInBtn");
-
-    // Disable button and show loading
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
-
-    const result = await this.authManager.signIn(email, password);
-
-    // Re-enable button
-    btn.disabled = false;
-    btn.textContent = "Sign In";
-
-    if (result.success) {
-      // Clear form
-      document.getElementById("signInForm").reset();
-    }
-  }
-
-  async handleSignUp() {
-    const name = document.getElementById("signUpName").value.trim();
-    const email = document.getElementById("signUpEmail").value.trim();
-    const password = document.getElementById("signUpPassword").value;
-    const confirmPassword = document.getElementById(
-      "signUpPasswordConfirm"
-    ).value;
-    const btn = document.getElementById("signUpBtn");
-
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      this.authManager.showNotification("Passwords do not match", "error");
-      return;
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      this.authManager.showNotification(
-        "Password must be at least 6 characters",
-        "error"
-      );
-      return;
-    }
-
-    // Disable button and show loading
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
-
-    const result = await this.authManager.signUp(email, password, name);
-
-    // Re-enable button
-    btn.disabled = false;
-    btn.textContent = "Create Account";
-
-    if (result.success) {
-      // Clear form
-      document.getElementById("signUpForm").reset();
-    }
-  }
-
-  async handleForgotPassword() {
-    const email = prompt("Enter your email address to reset your password:");
-
-    if (email && email.trim()) {
-      await this.authManager.resetPassword(email.trim());
-    }
-  }
-
-  subscribeToReadings() {
-    if (!this.storage) return;
-
-    // Subscribe to real-time updates
-    this.unsubscribeReadings = this.storage.subscribeToReadings((readings) => {
-      console.log("Readings updated:", readings.length);
-      this.loadDashboard();
-      this.loadRecentReadings();
-    });
   }
 
   bindEvents() {
@@ -207,6 +31,9 @@ class VitalSignsApp {
         this.modals.openModal(modalType);
       });
     });
+
+    // Form submissions
+    this.bindFormEvents();
   }
 
   bindFormEvents() {
@@ -253,7 +80,7 @@ class VitalSignsApp {
       });
   }
 
-  async handleBMISubmission() {
+  handleBMISubmission() {
     const height = parseFloat(document.getElementById("height").value);
     const weight = parseFloat(document.getElementById("weight").value);
     const heightUnit = document.getElementById("heightUnit").value;
@@ -276,6 +103,7 @@ class VitalSignsApp {
     const status = this.calculator.getBMIStatus(bmi);
 
     const reading = {
+      id: Date.now(),
       type: "BMI",
       value: bmi.toFixed(1),
       unit: "kg/m²",
@@ -284,18 +112,17 @@ class VitalSignsApp {
       notes: `Height: ${height}${heightUnit}, Weight: ${weight}${weightUnit}`,
     };
 
-    const saved = await this.storage.saveReading(reading);
+    this.storage.saveReading(reading);
+    this.modals.closeModal("bmi");
+    this.loadDashboard();
+    this.loadRecentReadings();
+    this.showNotification("BMI calculated and saved successfully", "success");
 
-    if (saved) {
-      this.modals.closeModal("bmi");
-      this.showNotification("BMI calculated and saved successfully", "success");
-      document.getElementById("bmiForm").reset();
-    } else {
-      this.showNotification("Error saving BMI reading", "error");
-    }
+    // Reset form
+    document.getElementById("bmiForm").reset();
   }
 
-  async handleBloodPressureSubmission() {
+  handleBloodPressureSubmission() {
     const systolic = parseInt(document.getElementById("systolic").value);
     const diastolic = parseInt(document.getElementById("diastolic").value);
     const notes = document.getElementById("bloodPressureNotes").value;
@@ -311,6 +138,7 @@ class VitalSignsApp {
     const status = this.calculator.getBloodPressureStatus(systolic, diastolic);
 
     const reading = {
+      id: Date.now(),
       type: "Blood Pressure",
       value: `${systolic}/${diastolic}`,
       unit: "mmHg",
@@ -319,18 +147,17 @@ class VitalSignsApp {
       notes: notes,
     };
 
-    const saved = await this.storage.saveReading(reading);
+    this.storage.saveReading(reading);
+    this.modals.closeModal("bloodPressure");
+    this.loadDashboard();
+    this.loadRecentReadings();
+    this.showNotification("Blood pressure recorded successfully", "success");
 
-    if (saved) {
-      this.modals.closeModal("bloodPressure");
-      this.showNotification("Blood pressure recorded successfully", "success");
-      document.getElementById("bloodPressureForm").reset();
-    } else {
-      this.showNotification("Error saving blood pressure reading", "error");
-    }
+    // Reset form
+    document.getElementById("bloodPressureForm").reset();
   }
 
-  async handleTemperatureSubmission() {
+  handleTemperatureSubmission() {
     const temperature = parseFloat(
       document.getElementById("temperatureValue").value
     );
@@ -347,6 +174,7 @@ class VitalSignsApp {
     const status = this.calculator.getTemperatureStatus(tempInF);
 
     const reading = {
+      id: Date.now(),
       type: "Temperature",
       value: temperature.toFixed(1),
       unit: `°${unit}`,
@@ -355,18 +183,17 @@ class VitalSignsApp {
       notes: notes,
     };
 
-    const saved = await this.storage.saveReading(reading);
+    this.storage.saveReading(reading);
+    this.modals.closeModal("temperature");
+    this.loadDashboard();
+    this.loadRecentReadings();
+    this.showNotification("Temperature recorded successfully", "success");
 
-    if (saved) {
-      this.modals.closeModal("temperature");
-      this.showNotification("Temperature recorded successfully", "success");
-      document.getElementById("temperatureForm").reset();
-    } else {
-      this.showNotification("Error saving temperature reading", "error");
-    }
+    // Reset form
+    document.getElementById("temperatureForm").reset();
   }
 
-  async handleVitalSignSubmission(type) {
+  handleVitalSignSubmission(type) {
     let value, unit, status, notes, displayName;
 
     switch (type) {
@@ -401,6 +228,7 @@ class VitalSignsApp {
     }
 
     const reading = {
+      id: Date.now(),
       type: displayName,
       value: value.toString(),
       unit: unit,
@@ -409,23 +237,17 @@ class VitalSignsApp {
       notes: notes,
     };
 
-    const saved = await this.storage.saveReading(reading);
+    this.storage.saveReading(reading);
+    this.modals.closeModal(type);
+    this.loadDashboard();
+    this.loadRecentReadings();
+    this.showNotification(`${displayName} recorded successfully`, "success");
 
-    if (saved) {
-      this.modals.closeModal(type);
-      this.showNotification(`${displayName} recorded successfully`, "success");
-      document.getElementById(`${type}Form`).reset();
-    } else {
-      this.showNotification(
-        `Error saving ${displayName.toLowerCase()}`,
-        "error"
-      );
-    }
+    // Reset form
+    document.getElementById(`${type}Form`).reset();
   }
 
   loadDashboard() {
-    if (!this.storage) return;
-
     const readings = this.storage.getAllReadings();
 
     // Update each vital sign with latest reading
@@ -442,6 +264,7 @@ class VitalSignsApp {
       .filter((r) => r.type === displayName)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
 
+    // Fix: handle inconsistent HTML IDs (BMI, Oxygen, Respiratory)
     const idMap = {
       bmi: "latestBMI",
       oxygen: "latestOxygen",
@@ -483,8 +306,6 @@ class VitalSignsApp {
   }
 
   loadRecentReadings() {
-    if (!this.storage) return;
-
     const readings = this.storage
       .getAllReadings()
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -494,43 +315,40 @@ class VitalSignsApp {
 
     if (readings.length === 0) {
       tbody.innerHTML = `
-        <tr class="no-data-row">
-          <td colspan="5">No readings recorded yet. Start by adding your first vital sign measurement.</td>
-        </tr>
-      `;
+                <tr class="no-data-row">
+                    <td colspan="5">No readings recorded yet. Start by adding your first vital sign measurement.</td>
+                </tr>
+            `;
       return;
     }
 
     tbody.innerHTML = readings
       .map(
         (reading) => `
-        <tr>
-          <td>${this.formatDateTime(reading.timestamp)}</td>
-          <td>${reading.type}</td>
-          <td>${reading.value} ${reading.unit}</td>
-          <td><span class="status-badge ${this.getStatusClass(
-            reading.status
-          )}">${reading.status}</span></td>
-          <td>
-            <button class="btn btn-outline btn-sm" onclick="app.deleteReading('${
-              reading.id
-            }')">Delete</button>
-          </td>
-        </tr>
-      `
+            <tr>
+                <td>${this.formatDateTime(reading.timestamp)}</td>
+                <td>${reading.type}</td>
+                <td>${reading.value} ${reading.unit}</td>
+                <td><span class="status-badge ${this.getStatusClass(
+                  reading.status
+                )}">${reading.status}</span></td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="app.deleteReading(${
+                      reading.id
+                    })">Delete</button>
+                </td>
+            </tr>
+        `
       )
       .join("");
   }
 
-  async deleteReading(id) {
+  deleteReading(id) {
     if (confirm("Are you sure you want to delete this reading?")) {
-      const deleted = await this.storage.deleteReading(id);
-
-      if (deleted) {
-        this.showNotification("Reading deleted successfully", "success");
-      } else {
-        this.showNotification("Error deleting reading", "error");
-      }
+      this.storage.deleteReading(id);
+      this.loadDashboard();
+      this.loadRecentReadings();
+      this.showNotification("Reading deleted successfully", "success");
     }
   }
 
@@ -543,14 +361,10 @@ class VitalSignsApp {
     );
   }
 
-  async exportData() {
-    if (!this.storage) return;
-
-    const csvContent = await this.storage.exportData();
+  exportData() {
     const readings = this.storage.getAllReadings();
-    const csv = this.generateCSV(readings);
-
-    this.downloadCSV(csv, "vital-signs-data.csv");
+    const csvContent = this.generateCSV(readings);
+    this.downloadCSV(csvContent, "vital-signs-data.csv");
     this.showNotification("Data exported successfully", "success");
   }
 
@@ -594,10 +408,12 @@ class VitalSignsApp {
   }
 
   showNotification(message, type = "info") {
+    // Create notification element
     const notification = document.createElement("div");
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
 
+    // Add styles
     Object.assign(notification.style, {
       position: "fixed",
       top: "20px",
@@ -611,6 +427,7 @@ class VitalSignsApp {
       transition: "transform 0.3s ease-in-out",
     });
 
+    // Set background color based on type
     const colors = {
       success: "#10b981",
       error: "#ef4444",
@@ -621,10 +438,12 @@ class VitalSignsApp {
 
     document.body.appendChild(notification);
 
+    // Animate in
     setTimeout(() => {
       notification.style.transform = "translateX(0)";
     }, 100);
 
+    // Remove after 3 seconds
     setTimeout(() => {
       notification.style.transform = "translateX(100%)";
       setTimeout(() => {
@@ -634,6 +453,7 @@ class VitalSignsApp {
   }
 
   showAddReadingMenu() {
+    // For now, just show a simple alert. In a real app, this could be a dropdown menu
     this.showNotification(
       "Use the quick action buttons below to add readings",
       "info"
@@ -644,5 +464,4 @@ class VitalSignsApp {
 // Initialize the application when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new VitalSignsApp();
-  window.app.init();
 });
